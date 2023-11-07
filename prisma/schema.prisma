@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// enable full-text search and add an index to course-title to search for in my-sql  
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+// uuid() is a function used to generate a universally unique identifier (UUID) 
+
+// create a model 
+model Course {
+  id String @id @default(uuid())
+  userId String
+  title String @db.Text
+  description String? @db.Text
+  imageUrl String? @db.Text
+  // price is optional 
+  price Float?
+  isPublished Boolean @default(false)
+  // category-id is also optional 
+  categoryId String?
+
+  // link the Course with category-model 
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  // link the chapter model with the Course using array
+  chapters Chapter[]
+
+  // array for attachments -- a model 
+  attachments Attachment[]
+
+  // array for to link to purchases 
+  purchases  Purchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  
+  // enable the full-text-search here for the courses 
+  @@fulltext([title])
+}
+
+model Category {
+  id String @id @default(uuid())
+  name String @unique
+  courses Course[]
+}
+
+// link this model with the Course using @relation , 
+model Attachment {
+  id String @id @default(uuid())
+  name String
+  url String @db.Text
+
+  courseId String
+  // create a object of model Course , ondelete:cascade (when the course is deleted , then all other things wrt it is also deleted )
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}
+
+// add the model chapter                        
+model Chapter {
+  id String @id @default(uuid())
+  title String
+  description String? @db.Text
+  videoUrl String? @db.Text
+  position Int
+  isPublished Boolean @default(false)
+  isFree Boolean @default(false)
+
+  // link this model to the video-proceesing -MuxData
+  muxData MuxData?
+
+  // each course is going to have it's chapter 
+  courseId String
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  // track the progress of Student's progres 
+  userProgress UserProgress[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+}   
+// create a model for video-processing 
+model MuxData {
+  id String @id @default(uuid())
+  assetId String
+  playbackId String?
+
+  chapterId String @unique
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+}
+
+// track the progress of Student's progres  using model -->  UserProgress
+model UserProgress {
+  id String @id @default(uuid())
+  userId String
+  chapterId String
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  isCompleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+  // there should be a unique combination of user and id 
+  @@unique([userId, chapterId])
+}
+
+// create a model for purchasing 
+model Purchase {
+  id String @id @default(uuid())
+  userId String
+  courseId String
+  
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt()
+
+  // we dont want the user to purchase the course multiple times 
+  @@unique([userId, courseId])
+  @@index([courseId])
+
+}
+
+// check stripe-customer 
+model StripeCustomer {
+  id String @id @default(uuid())
+  // 1 stripe customer per logged in user 
+  userId String @unique
+  stripeCustomerId String @unique
+
+  ceatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
