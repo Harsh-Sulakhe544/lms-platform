@@ -8,8 +8,6 @@ import  Link  from "next/link";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "./search-input";
 
-import { isTeacher } from "@/lib/teacher";
-
 
 export const NavbarRoutes = () => {
     const {userId} = useAuth();
@@ -38,11 +36,11 @@ export const NavbarRoutes = () => {
               </Button>
             </Link>  
 
-            ): isTeacher(userId) ? (
+            ): (
                 <Link href={"/teacher/courses"}> 
                     <Button size={"sm"} variant={"ghost"}> Teacher mode</Button>
                 </Link>
-            ): null}
+            )}
             {/* redirect to our-app , instead of clerk when log-out  */}
             <UserButton afterSignOutUrl="/" />
         </div>
